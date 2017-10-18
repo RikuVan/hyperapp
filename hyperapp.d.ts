@@ -41,7 +41,7 @@ export type VNodeChildren =
  * @param children  The children of the VNode
  *
  * @memberOf [VDOM]
-*/
+ */
 export function h<Props>(
   type: Component<Props> | string,
   props?: Props,
@@ -93,7 +93,7 @@ export interface Action<State extends Hyperapp.State, Data> {
  */
 export interface Actions<
   State extends Hyperapp.State & Partial<Record<keyof Actions<State>, any>>
-> {
+  > {
   [action: string]:
     | Actions<State[keyof Action<State, any>]>
     | Action<State, any>
@@ -106,7 +106,7 @@ export interface Actions<
 export interface InternalAction<
   State extends Hyperapp.State,
   Actions extends Hyperapp.Actions<State>
-> {
+  > {
   (state: State, actions: Actions, data: any): ActionResult<State>
 }
 
@@ -117,10 +117,21 @@ export interface InternalAction<
 export type InternalActions<
   State extends Hyperapp.State & Partial<Record<keyof Actions, any>>,
   Actions extends Hyperapp.Actions<State>
-> = {
+  > = {
   [P in keyof Actions]:
-    | InternalAction<State, Actions>
-    | InternalActions<State[P], Actions[P] & Hyperapp.Actions<State[P]>>
+  | InternalAction<State, Actions>
+  | InternalActions<State[P], Actions[P] & Hyperapp.Actions<State[P]>>
+  }
+
+/**The initialization function, ran after the actions have been initialized.
+ *
+ * @memberOf [App]
+ */
+export interface Init<
+  State extends Hyperapp.State,
+  Actions extends Hyperapp.Actions<State>
+  > {
+  (state: State, actions: Actions): void
 }
 
 /** The view function.
@@ -130,31 +141,92 @@ export type InternalActions<
 export interface View<
   State extends Hyperapp.State,
   Actions extends Hyperapp.Actions<State>
-> {
+  > {
   (state: State, actions: Actions): VNode<{}>
 }
 
-/** The app() function signature.
+/** Definition for a single module: a self-contained set of actions that operates on a state tree.
+ *
+ * OwnState and OwnActions may be set to ensure that the initial state and all actions are implemented.
+ *
+ * @param State The full state of the module including sub-modules
+ * @param Actions The actions of the module including sub-modules
+ * @param OwnState Optional, if set, the state of this module excluding sub-modules
+ *                 defaults to partial state
+ * @param OwnActions Optional, if set, the actions of this module excluding sub-modules
+ *                   defaults to partial actions
  *
  * @memberOf [App]
  */
-export interface App<
+export interface Module<
+  State extends Hyperapp.State & Record<keyof Actions, any>,
+  Actions extends Hyperapp.Actions<State>,
+  OwnState = Partial<State>,
+  OwnActions = Partial<Actions>
+  > {
+  state?: OwnState
+  actions?: InternalActions<State, OwnActions & Hyperapp.Actions<State>>
+  init?: Init<State, Actions>
+  modules?: Modules<
+    Partial<State> & Record<keyof Partial<Actions>, any>,
+    Partial<Actions> & Hyperapp.Actions<State>
+    >
+}
+
+/** The map of modules indexed by state slice.
+ *
+ * @memberOf [App]
+ */
+export type Modules<
   State extends Hyperapp.State & Record<keyof Actions, any>,
   Actions extends Hyperapp.Actions<State>
-> {
-  state?: State
-  actions?: InternalActions<State, Actions>
+  > = {
+  [A in keyof Actions]?: Module<
+  State[A],
+  Actions[A] & Hyperapp.Actions<State[A]>
+  >
+  }
+
+/** The props object that serves as an input to app().
+ *
+ * @param State The full state of the module including sub-modules
+ * @param Actions The actions of the module including sub-modules
+ * @param OwnState Optional, if set, the state of this module excluding sub-modules
+ *                 defaults to partial state
+ * @param OwnActions Optional, if set, the actions of this module excluding sub-modules
+ *                   defaults to partial actions
+ *
+ * @memberOf [App]
+ */
+export interface AppProps<
+  State extends Hyperapp.State & Record<keyof Actions, any>,
+  Actions extends Hyperapp.Actions<State>,
+  OwnState = Partial<State>,
+  OwnActions = Partial<Actions>
+  > extends Module<State, Actions, OwnState, OwnActions> {
   view?: View<State, Actions>
 }
 
 /** The app() function, main entry point of Hyperapp's API.
  *
+ * @param State The full state of the module including sub-modules
+ * @param Actions The actions of the module including sub-modules
+ * @param OwnState Optional, if set, the state of this module excluding sub-modules
+ *                 defaults to partial state
+ * @param OwnActions Optional, if set, the actions of this module excluding sub-modules
+ *                   defaults to partial actions
+ *
  * @memberOf [App]
  */
 export function app<
   State extends Hyperapp.State & Record<keyof Actions, any>,
-  Actions extends Hyperapp.Actions<State>
->(app: App<State, Actions>, container?: HTMLElement | null): Actions
+  Actions extends Hyperapp.Actions<State>,
+  OwnState = Partial<State>,
+  OwnActions = Partial<Actions>
+  >(
+  app: AppProps<State, Actions, OwnState, OwnActions>,
+  container?: HTMLElement | null
+): Actions
 
 /** @namespace [JSX] */
 
