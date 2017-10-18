@@ -121,6 +121,7 @@ export type InternalActions<
   [P in keyof Actions]:
   | InternalAction<State, Actions>
   | InternalActions<State[P], Actions[P] & Hyperapp.Actions<State[P]>>
+  | any
   }
 
 /**The initialization function, ran after the actions have been initialized.
@@ -142,7 +143,7 @@ export interface View<
   State extends Hyperapp.State,
   Actions extends Hyperapp.Actions<State>
   > {
-  (state: State, actions: Actions): VNode<{}>
+  (state: State, actions: Actions): any
 }
 
 /** Definition for a single module: a self-contained set of actions that operates on a state tree.
